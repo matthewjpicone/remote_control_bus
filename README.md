@@ -33,7 +33,7 @@ PlayStation controller.
 2. Enter the Wi-Fi network used for over-the-air updates.
 3. Install the
    [ESP8266 PS2X fork](https://github.com/miathedev/Arduino-PS2X),
-   [RedMP3](https://github.com/mattmattbobcat/RedMP3),
+   [OPEN-SMART RedMP3](https://github.com/ArtronShop/OPEN-SMART-RedMP3),
    `Adafruit PWM Servo Driver Library`, and
    `ESP8266 and ESP32 OLED driver for SSD1306 displays`.
 4. Flash the ESP8266 master and AVR light controller separately.

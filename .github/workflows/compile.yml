@@ -38,8 +38,8 @@ jobs:
           git clone https://github.com/miathedev/Arduino-PS2X.git build/Arduino-PS2X
           git -C build/Arduino-PS2X checkout ed603001bdca88ba062f6ed47f22a3662cc3af0b
           cp -R build/Arduino-PS2X/PS2X_lib build/libraries/PS2X_lib
-          git clone https://github.com/mattmattbobcat/RedMP3.git build/libraries/RedMP3
-          git -C build/libraries/RedMP3 checkout 32ed5ca0e748f30584f0895fdf659c8b9cdba46a
+          git clone https://github.com/ArtronShop/OPEN-SMART-RedMP3.git build/libraries/RedMP3
+          git -C build/libraries/RedMP3 checkout 210cb92b9a5ad510fa4cb304fffab959e54e1917
 
       - name: Add compile-only Wi-Fi configuration
         run: |
