@@ -1,4 +1,50 @@
-# Remote-Control-Bus: A 1:18 Scale Articulated Model Bus
+# Remote-Control Bus
+
+A scratch-built 1:18 scale articulated bus combining CAD, 3D printing, custom
+electronics and embedded software. The completed model uses six OLED destination
+displays, six powered doors, realistic lighting and sound, dual microcontrollers and a
+PlayStation controller.
+
+![Completed articulated model bus](PROJECT%20PROGRESS%20IMAGES/Complete%20Bus.jpeg)
+
+## Project at a glance
+
+- 141 successful printed parts across multiple design iterations
+- A Fusion 360 body model split for practical printing and assembly
+- Home-etched PCBs and a modular master/light-controller architecture
+- I²C communication between ESP8266 and AVR controllers
+- PCA9685 servo control, OLED destination displays and over-the-air updates
+- Documented renders, schematics, PCB artwork, build photographs and firmware
+
+## Repository guide
+
+| Area | Contents |
+| --- | --- |
+| `RC_VOLVO_B12B_ESP8266_CONTROL_MASTER/` | Main controller, doors, displays, drivetrain and controller input |
+| `RC_VOLVO_B12B_AVR_LIGHT_CONTROLLER/` | Lighting and auxiliary command controller |
+| `PCB Design/` | Fabrication artwork and board photographs |
+| `PROJECT PROGRESS IMAGES/` | Build and assembly record |
+| `RENDERED PHOTOS/` | CAD renders used during development |
+
+## Firmware setup
+
+1. Copy `credentials.example.h` to `credentials.h` inside the ESP8266 controller
+   folder.
+2. Enter the Wi-Fi network used for over-the-air updates.
+3. Install the
+   [ESP8266 PS2X fork](https://github.com/miathedev/Arduino-PS2X),
+   [OPEN-SMART RedMP3](https://github.com/ArtronShop/OPEN-SMART-RedMP3),
+   `Adafruit PWM Servo Driver Library`, and
+   `ESP8266 and ESP32 OLED driver for SSD1306 displays`.
+4. Flash the ESP8266 master and AVR light controller separately.
+
+`credentials.h` is ignored deliberately so device credentials cannot be committed.
+Every pull request compiles both controllers in GitHub Actions.
+
+## Portfolio
+
+A guided, interactive version of this build is available at
+[matthewpicone.com/projects/remote-control-bus/](https://matthewpicone.com/projects/remote-control-bus/).
 
 ### Introduction
 In November 2020, I purchased my first 3D printer, and after printing a lot of designs from Thingiverse, I decided to create a remote control bus using Fusion 360. After 141 successful prints, and a few failed attempts, I completed the model. I went through several iterations of electronic designs until I settled on the final one, with separate controllers and PWM drivers to allow for easy separation of the bus. The bus features six OLED displays, functional doors, and realistic lights and decals.
@@ -52,4 +98,3 @@ Months of testing and playing around resulted in the first prototype, which was 
 [![Watch the video](https://img.youtube.com/vi/yMuCuTXPN7s/hqdefault.jpg)](https://youtu.be/yMuCuTXPN7s)
 
 ![alt text](https://github.com/matthewjpicone/Remote-Control-Bus/blob/main/PROJECT%20PROGRESS%20IMAGES/Complete%20Bus.jpeg?raw=true)
-

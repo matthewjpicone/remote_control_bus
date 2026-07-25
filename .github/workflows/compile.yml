@@ -1,0 +1,62 @@
+name: Compile firmware
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install board cores
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls \
+            https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+          arduino-cli core install arduino:avr@1.8.6
+          arduino-cli core install esp8266:esp8266@3.1.2
+
+      - name: Install managed libraries
+        run: |
+          arduino-cli lib install "Adafruit PWM Servo Driver Library@3.0.2"
+          arduino-cli lib install \
+            "ESP8266 and ESP32 OLED driver for SSD1306 displays@4.6.2"
+
+      - name: Install pinned controller and audio libraries
+        run: |
+          mkdir -p build/libraries
+          git clone https://github.com/miathedev/Arduino-PS2X.git build/Arduino-PS2X
+          git -C build/Arduino-PS2X checkout ed603001bdca88ba062f6ed47f22a3662cc3af0b
+          cp -R build/Arduino-PS2X/PS2X_lib build/libraries/PS2X_lib
+          git clone https://github.com/ArtronShop/OPEN-SMART-RedMP3.git build/libraries/RedMP3
+          git -C build/libraries/RedMP3 checkout 210cb92b9a5ad510fa4cb304fffab959e54e1917
+
+      - name: Add compile-only Wi-Fi configuration
+        run: |
+          cp \
+            RC_VOLVO_B12B_ESP8266_CONTROL_MASTER/credentials.example.h \
+            RC_VOLVO_B12B_ESP8266_CONTROL_MASTER/credentials.h
+
+      - name: Compile ESP8266 master controller
+        run: |
+          arduino-cli compile \
+            --fqbn esp8266:esp8266:d1 \
+            --libraries build/libraries \
+            RC_VOLVO_B12B_ESP8266_CONTROL_MASTER
+
+      - name: Compile AVR light controller
+        run: |
+          arduino-cli compile \
+            --fqbn arduino:avr:nano:cpu=atmega328old \
+            --libraries build/libraries \
+            RC_VOLVO_B12B_AVR_LIGHT_CONTROLLER

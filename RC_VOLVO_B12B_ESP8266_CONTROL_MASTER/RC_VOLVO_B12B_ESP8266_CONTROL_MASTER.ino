@@ -130,6 +130,7 @@ int OSIND_STATE = false;
 int HAZARD_STATE = false;
 int DESTO_STATE = 0;
 int TRACK_STATE = 0;
+bool otaReady = false;
 
 
 void setup() {
@@ -158,28 +159,33 @@ void setup() {
   DISPLAYFUNC("WAITING FOR WIFI");  //OTA UPDATER
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    DISPLAYFUNC("NO WIFI");
-    delay(5000);
-    //ESP.restart();
+  const unsigned long wifiStartedAt = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStartedAt < 10000) {
+    delay(250);
   }
-  ArduinoOTA.setHostname(OTA_HOSTNAME);
-  ArduinoOTA.onStart([]() {
-    DISPLAYFUNC("UPLOAD IN PROGRESS");
-  });
-  ArduinoOTA.onEnd([]() {
-    DISPLAYFUNC("UPLOAD END");
-  });
-  ArduinoOTA.onError([](ota_error_t error) {
-    if (error == OTA_AUTH_ERROR) DISPLAYFUNC("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) DISPLAYFUNC("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) DISPLAYFUNC("Connect Failed");
-    else if (error == OTA_RECEIVE_ERROR) DISPLAYFUNC("Receive Failed");
-    else if (error == OTA_END_ERROR) DISPLAYFUNC("End Failed");
-  });
-  ArduinoOTA.begin();
+  if (WiFi.status() == WL_CONNECTED) {
+    ArduinoOTA.setHostname(OTA_HOSTNAME);
+    ArduinoOTA.onStart([]() {
+      DISPLAYFUNC("UPLOAD IN PROGRESS");
+    });
+    ArduinoOTA.onEnd([]() {
+      DISPLAYFUNC("UPLOAD END");
+    });
+    ArduinoOTA.onError([](ota_error_t error) {
+      if (error == OTA_AUTH_ERROR) DISPLAYFUNC("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) DISPLAYFUNC("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) DISPLAYFUNC("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) DISPLAYFUNC("Receive Failed");
+      else if (error == OTA_END_ERROR) DISPLAYFUNC("End Failed");
+    });
+    ArduinoOTA.begin();
+    otaReady = true;
+    DISPLAYFUNC("BOOTING - OTA COMPLETE");
+  } else {
+    DISPLAYFUNC("NO WIFI - OFFLINE MODE");
+  }
 
-  DISPLAYFUNC("BOOTING - OTA COMPLETE");  //ATTEMPT CONNECT WITH CONTROLLER
+  // ATTEMPT CONNECT WITH CONTROLLER
   error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_SEL, PS2_DAT, pressures, rumble);
   if (error == 0) {
     DISPLAYFUNC("Found Controller, configured successful ");
@@ -215,7 +221,9 @@ void setup() {
 }
 //******************************************************************************************************************************
 void loop() {
-  ArduinoOTA.handle();
+  if (otaReady) {
+    ArduinoOTA.handle();
+  }
 
   if (error == 1)         //CONTROLLER INPUT DETECTION
     return;
@@ -355,7 +363,7 @@ if (ps2x.ButtonPressed(PSB_L2) && ps2x.ButtonPressed(PSB_R2)) {       //HAZARD L
       } }
       
     //STEERING CONTROL
-    pwm.setPWM(0, 0, SERVOPOS((map(ps2x.Analog(PSS_LX), 0, 255, NS_TURN_MAX, OS_TURN_MIN))));
+    pwm.setPWM(0, 0, SERVOPOS((map(ps2x.Analog(PSS_LX), 0, 255, NS_TURN_MAX, NS_TURN_MIN))));
     pwm.setPWM(1, 0, SERVOPOS((map(ps2x.Analog(PSS_LX), 0, 255, OS_TURN_MAX, OS_TURN_MIN))));
     delay(50);
 
