@@ -16,7 +16,6 @@ after all of the lighting, the MP3 player, and the buzzer.
 
 #include <SoftwareSerial.h>
 #include <RedMP3.h>
-#define LCU_REVERSE_OFF 41
 // AVR settings for slave receiver.
 
 #define SLAVE_ADDR 0x75
@@ -38,8 +37,8 @@ after all of the lighting, the MP3 player, and the buzzer.
 // COMMAND ASSIGNMENTS
 #define LCU_REVERSE         20
 #define LCU_REVERSE_OFF     21
-#define LCU_WIGWAG_2       22
-#define LCU_WIGWAG_1      23
+#define LCU_WIGWAG_1       22
+#define LCU_WIGWAG_2       23
 #define LCU_NSIND           24
 #define LCU_NSIND_OFF       25
 #define LCU_OSIND           26
@@ -97,10 +96,37 @@ unsigned long WIGWAG_COUNTER = 0;
 unsigned long previousMillis = 0;
 const long INTERVAL = 500;
 
-// COMMAND VALUE & RECEIVE FUNCTION
-int CV;
-void receiveEvent() {
-  CV = Wire.read();
+// I2C commands arrive faster than the main loop can always process them. Keep
+// a small interrupt-safe queue so a one-shot sound command is not overwritten
+// by the reset command that follows it.
+const byte COMMAND_QUEUE_SIZE = 8;
+volatile byte commandQueue[COMMAND_QUEUE_SIZE];
+volatile byte commandQueueHead = 0;
+volatile byte commandQueueTail = 0;
+
+void receiveEvent(int byteCount) {
+  (void)byteCount;
+  while (Wire.available()) {
+    const byte command = Wire.read();
+    const byte nextHead = (commandQueueHead + 1) % COMMAND_QUEUE_SIZE;
+    if (nextHead != commandQueueTail) {
+      commandQueue[commandQueueHead] = command;
+      commandQueueHead = nextHead;
+    }
+  }
+}
+
+bool nextCommand(byte* command) {
+  noInterrupts();
+  if (commandQueueTail == commandQueueHead) {
+    interrupts();
+    return false;
+  }
+
+  *command = commandQueue[commandQueueTail];
+  commandQueueTail = (commandQueueTail + 1) % COMMAND_QUEUE_SIZE;
+  interrupts();
+  return true;
 }
 
 // MP3 PLAYER SETTINGS
@@ -154,69 +180,70 @@ void setup() {
   Wire.onReceive(receiveEvent);
 }
 void loop() {
-  // Checks value of CV - Cmmand Value. 
-  // TODO - CONVERT TO SWITCH 
-  if (CV == PLAYSOUND_1) {
+  byte command = LCU_LOOP_RESET;
+  const bool hasCommand = nextCommand(&command);
+
+  if (hasCommand && command == PLAYSOUND_1) {
     PLAY_SOUND(DOORS_CLOSING);
   }
 
-  if (CV == PLAYSOUND_2) {
+  if (hasCommand && command == PLAYSOUND_2) {
     PLAY_SOUND(TRACK_2);
   }
 
-  if (CV == PLAYSOUND_3) {
+  if (hasCommand && command == PLAYSOUND_3) {
     PLAY_SOUND(TRACK_3);
   }
 
-  if (CV == PLAYSOUND_4) {
+  if (hasCommand && command == PLAYSOUND_4) {
     PLAY_SOUND(TRACK_4);
   }
 
-  if (CV == PLAYSOUND_5) {
+  if (hasCommand && command == PLAYSOUND_5) {
     PLAY_SOUND(TRACK_5);
   }
 
-  if (CV == PLAYSOUND_6) {
+  if (hasCommand && command == PLAYSOUND_6) {
     PLAY_SOUND(TRACK_6);
   }
 
-  if (CV == PLAYSOUND_7) {
+  if (hasCommand && command == PLAYSOUND_7) {
     PLAY_SOUND(TRACK_7);
   }
 
-  if (CV == PLAYSOUND_8) {
+  if (hasCommand && command == PLAYSOUND_8) {
     PLAY_SOUND(TRACK_8);
   }
 
-  if (CV == PLAYSOUND_9) {
+  if (hasCommand && command == PLAYSOUND_9) {
     PLAY_SOUND(TRACK_9);
   }
 
-  if (CV == PLAYSOUND_10) {
+  if (hasCommand && command == PLAYSOUND_10) {
     PLAY_SOUND(TRACK_10);
   }
 
-  if (CV == PLAYSOUND_11) {
+  if (hasCommand && command == PLAYSOUND_11) {
     PLAY_SOUND(TRACK_11);
   }
 
-  if (CV == PLAYSOUND_12) {
+  if (hasCommand && command == PLAYSOUND_12) {
     PLAY_SOUND(TRACK_12);
   }
 
-  if (CV == PLAYSOUND_13) {
+  if (hasCommand && command == PLAYSOUND_13) {
     PLAY_SOUND(TRACK_13);
   }
 
-  if (CV == PLAYSOUND_14) {
+  if (hasCommand && command == PLAYSOUND_14) {
     PLAY_SOUND(TRACK_14);
   }
 
-  if (CV == PLAYSOUND_15) {
+  if (hasCommand && command == PLAYSOUND_15) {
     PLAY_SOUND(TRACK_15);
   }
 
-  if (CV == PLAYSOUND_20) {
+  if (hasCommand && command == PLAYSOUND_20) {
     tone(BUZ, 1500);
     delay(50);
     noTone(BUZ);
@@ -231,58 +258,58 @@ void loop() {
   }
 
 // Lighting
-  if (CV == LCU_REVERSE) {
+  if (hasCommand && command == LCU_REVERSE) {
     CMDSTATE_REVERSE = true;
     REV_STATE = true;
   }
 
-  if (CV == LCU_REVERSE_OFF) {
+  if (hasCommand && command == LCU_REVERSE_OFF) {
     CMDSTATE_REVERSE = false;
     REV_STATE = false;
   }
 
-  if (CV == LCU_WIGWAG_2) {
+  if (hasCommand && command == LCU_WIGWAG_1) {
     WIGWAG_COUNTER = 100;
 //      CMDSTATE_WIGWAG2 = true;
     }
-    if (CV == LCU_WIGWAG_1) {
+    if (hasCommand && command == LCU_WIGWAG_2) {
       
       WIGWAG_COUNTER = 15;
     }
 
-  if (CV == LCU_NSIND) {
+  if (hasCommand && command == LCU_NSIND) {
     CMDSTATE_NSIND = true;
   }
 
-  if (CV == LCU_NSIND_OFF) {
+  if (hasCommand && command == LCU_NSIND_OFF) {
     CMDSTATE_NSIND = false;
   }
 
-  if (CV == LCU_OSIND) {
+  if (hasCommand && command == LCU_OSIND) {
     CMDSTATE_OSIND = true;
   }
 
-  if (CV == LCU_OSIND_OFF) {
+  if (hasCommand && command == LCU_OSIND_OFF) {
     CMDSTATE_OSIND = false;
   }
 
-  if (CV == LCU_HEADLIGHTS) {
+  if (hasCommand && command == LCU_HEADLIGHTS) {
     CL_STATE = HIGH;
     NSLB_STATE = HIGH;
     OSLB_STATE = HIGH;
   }
 
-  if (CV == LCU_HEADLIGHTS_OFF) {
+  if (hasCommand && command == LCU_HEADLIGHTS_OFF) {
     CL_STATE = LOW;
     NSLB_STATE = LOW;
     OSLB_STATE = LOW;
   }
 
-  if (CV == LCU_HIGHBEAM) {
+  if (hasCommand && command == LCU_HIGHBEAM) {
     HIGHBEAM_STATE = HIGH;
   }
 
-  if (CV == LCU_HIGHBEAM_OFF) {
+  if (hasCommand && command == LCU_HIGHBEAM_OFF) {
     HIGHBEAM_STATE = LOW;
   }
 
